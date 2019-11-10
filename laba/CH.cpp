@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <functional>
 
 struct PPaint
 {
@@ -35,6 +36,23 @@ struct PPaint1
 		h = 0.1;
 	}
 };
+
+struct boundaryProblemPoint
+{
+	int number = 0;
+	double step = 0;
+	double x = 0;
+	double numeric_sol_value			 = 0;
+	double numeric_sol_value_doubled	 = 0;
+	double numeric_sol_value_halfstepped = 0;
+	double global_error			   = 0; 
+	double control_value		   = 0;
+	double linear_error_evaluation = 0;
+	double a = 0;
+	double phi = 0;
+	double d = 0;
+};
+
 
 inline double max(double x1, double x2)
 {
@@ -231,54 +249,96 @@ inline std::vector<PPaint> Basic(int n, PPaint p0, double control, double range,
 	return points;
 }
 
-inline std::vector<PPaint> StartMethodBasic1(int n, PPaint p0, double control, double range, double xmax)
+template<typename Function>
+static inline double calc_integral(double &lower_bound, double &upper_bound, Function function_to_be_integrated)
 {
-	std::vector<PPaint> points;
-	points.push_back(p0);
-	double h = p0.h;
-	int i = 1;
-	double xtmp;
-	PPaint p;
-	while (i < n + 1)
+	double result_value = 0;
+
+	return result_value;
+}
+
+template<typename Function>
+static inline double calc_a_value(double xi0, double xi1, Function k_function)
+{
+	double a_value = 0;
+	return return a_value;
+}
+
+template<typename Function>
+static inline double calc_phi_value(double xi0, double xi1, Function f_function)
+{
+	double phi_value = 0;
+	return return phi_value;
+}
+
+template<typename Function>
+static inline double calc_d_value(double xi0, double xi1, Function q_function)
+{
+	double d_value = 0;
+	return return d_value;
+}
+
+inline std::vector<boundaryProblemPoint> StartMethodBasic1(int n, boundaryProblemPoint p0, double control, double range, double xmax, double gap_point)
+{
+	auto k1 = [](double &x_value) -> double
 	{
-		if (points[i - 1].xn > xmax - range)
-			break;
-		p.num = i;
-		p.h = h;
-		p.xn = points[i - 1].xn + h;
-		if (p.xn > xmax)
+		return sqrt(x_value);
+	};
+	auto k2 = [](double &x_value) -> double
+	{
+		return x_value + 1;
+	};
+	auto f1 = [](double &x_value) -> double
+	{
+		return 1;
+	};
+	auto f2 = [](double &x_value) -> double
+	{
+		return 2.f + sqrt(x_value);
+	};
+	auto q1 = [](double &x_value) -> double
+	{
+		return 1;
+	};
+	auto q2 = [](double &x_value) -> double
+	{
+		return x_value * x_value;
+	};
+
+
+	std::vector<boundaryProblemPoint> points;
+	points.push_back(p0);
+	double step = p0.step;
+	const double function_coef = 1.f / n;
+	int i = 1;
+	boundaryProblemPoint current_point;
+
+
+	while (i < n)
+	{
+		current_point.number = i;
+		current_point.step = step;
+		current_point.x = points[i - 1].x + step;
+
+		if ((current_point.x + step) < gap_point || current_point.x > gap_point)
 		{
-			h = h / 2;
-			continue;
+			current_point.a = function_coef * calc_a_value(points[i].x, points[i].x + step, k1);
+			current_point.phi = function_coef * calc_phi_value(points[i].x - 0.5f, points[i].x + 0.5f, f1);
+			current_point.d = function_coef * calc_phi_value(points[i].x - 0.5f, points[i].x + 0.5f, q1);
 		}
-		p.vn = RK4_BASIC1(points[i - 1].xn, points[i - 1].vn, h);
-		xtmp = p.xn - h / 2;
-		p.v15 = RK4_BASIC1(points[i - 1].xn, points[i - 1].vn, h / 2.0);
-		p.v2 = RK4_BASIC1(xtmp, p.v15, h / 2.0);
-		p.S = (p.vn - p.v2) / 15.0;
-		if (abs(p.S) > control)
+		else if (1)
 		{
-			p.sub = -2;
-			h = h / 2.0;
-			continue;
+			// добавить все случаи
 		}
-		if (abs(p.S) < control / 32.0)
-		{
-			p.sub = 2;
-			h = 2.0 * h;
-			points.push_back(p);
-			i++;
-			continue;
-		}
-		points.push_back(p);
-		i++;
-	}
+
 	return points;
 }
+
 
 inline std::vector<PPaint1> StartMethodBasic2(int n, PPaint1 p0, double control, double range, double xmax,  double a, double b)
 {
 	std::vector<PPaint1> points;
+	
 	points.push_back(p0);
 	double h = p0.h;
 	int i = 1;
