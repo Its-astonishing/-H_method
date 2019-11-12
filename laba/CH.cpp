@@ -250,57 +250,53 @@ inline std::vector<PPaint> Basic(int n, PPaint p0, double control, double range,
 }
 
 template<typename Function>
-static inline double calc_integral(double &lower_bound, double &upper_bound, Function function_to_be_integrated)
+static inline double calc_a_value(double xi, Function k_function)
 {
-	double result_value = 0;
-
-	return result_value;
+	double a_value = k_function(xi);
+	return a_value;
 }
 
 template<typename Function>
-static inline double calc_a_value(double xi0, double xi1, Function k_function)
+static inline double calc_phi_value(double xi, Function f_function)
 {
-	double a_value = 0;
-	return return a_value;
-}
-
-template<typename Function>
-static inline double calc_phi_value(double xi0, double xi1, Function f_function)
-{
-	double phi_value = 0;
+	double phi_value = f_function(xi);
 	return return phi_value;
 }
 
 template<typename Function>
-static inline double calc_d_value(double xi0, double xi1, Function q_function)
+static inline double calc_d_value(double xi, Function q_function)
 {
-	double d_value = 0;
+	double d_value = q_function(xi);
 	return return d_value;
 }
 
+std::vector<double> progonka(std::vector<std::vector<double>> & coefs)
+{
+
+};
 inline std::vector<boundaryProblemPoint> StartMethodBasic1(int n, boundaryProblemPoint p0, double control, double range, double xmax, double gap_point)
 {
-	auto k1 = [](double &x_value) -> double
+	auto k1 = [](double x_value) -> double
 	{
 		return sqrt(x_value);
 	};
-	auto k2 = [](double &x_value) -> double
+	auto k2 = [](double x_value) -> double
 	{
 		return x_value + 1;
 	};
-	auto f1 = [](double &x_value) -> double
+	auto f1 = [](double x_value) -> double
 	{
 		return 1;
 	};
-	auto f2 = [](double &x_value) -> double
+	auto f2 = [](double x_value) -> double
 	{
 		return 2.f + sqrt(x_value);
 	};
-	auto q1 = [](double &x_value) -> double
+	auto q1 = [](double x_value) -> double
 	{
 		return 1;
 	};
-	auto q2 = [](double &x_value) -> double
+	auto q2 = [](double x_value) -> double
 	{
 		return x_value * x_value;
 	};
@@ -312,6 +308,66 @@ inline std::vector<boundaryProblemPoint> StartMethodBasic1(int n, boundaryProble
 	const double function_coef = 1.f / n;
 	int i = 1;
 	boundaryProblemPoint current_point;
+	std::vector<std::vector<double>> coefs(3);
+	double ai = 0;
+	double phi = 0;
+	double di = 0;
+
+	std::vector<double> setka;
+	for (double i = 1; i < n - 1; i += step) setka.push_back(i);
+	for (auto xi : setka) {
+		double phi = 0.0;
+		double d = 0.0;
+		if (xi + step < gap_point) {
+			// k1
+			phi = f1(xi);
+			d = q1(xi);
+		}
+		else if(xi > gap_point) {
+			// k2
+			phi = f2(xi);
+			d = q2(xi);
+		}
+		else {
+			// k1, k2
+			double x = gap_point;
+			phi = (1.0 / step) * ((x - xi) * f1((x + xi) / 2.0) + (xi + step - x) * f2( (xi + step + x) / 2.0));
+			d = (1.0 / step) * ((x - xi) * q1((x + xi) / 2.0) + (xi + step - x) * q2((xi + step + x) / 2.0));
+		}
+		coefs[1].push_back(phi);
+		coefs[2].push_back(d);
+	}
+
+	std::vector<double> vspom_setka;
+	for (double i = step / 2.0; i < n - 1 + step / 2.0; i += step) vspom_setka.push_back(i);
+	for (auto xi : vspom_setka) {
+		double a = 0.0;
+		if (xi + step < gap_point) {
+			// k1
+			a = k1(xi);
+		}
+		else if (xi > gap_point) {
+			// k2
+			a = k2(xi);
+		}
+		else {
+			// k1, k2
+			double x = gap_point;
+			a = (1.0 / step) * ((x - xi) * k1((x + xi) / 2.0) + (xi + step - x) * k2((xi + step + x) / 2.0));
+		}
+		coefs[0].push_back(a);
+	}
+	
+	progonka(coefs);
+
+
+
+
+
+
+	// <-------------------------------------------------------------------------->
+
+
 
 
 	while (i < n)
@@ -320,15 +376,27 @@ inline std::vector<boundaryProblemPoint> StartMethodBasic1(int n, boundaryProble
 		current_point.step = step;
 		current_point.x = points[i - 1].x + step;
 
-		if ((current_point.x + step) < gap_point || current_point.x > gap_point)
+		if ((current_point.x + step) < gap_point)
 		{
-			current_point.a = function_coef * calc_a_value(points[i].x, points[i].x + step, k1);
-			current_point.phi = function_coef * calc_phi_value(points[i].x - 0.5f, points[i].x + 0.5f, f1);
-			current_point.d = function_coef * calc_phi_value(points[i].x - 0.5f, points[i].x + 0.5f, q1);
+			ai = calc_a_value(points[i].x - 0.5f * step, k1);
+			phi = calc_phi_value(points[i].x, f1);
+			di = calc_d_value(points[i].x, q1);
 		}
-		else if (1)
+		else if (current_point.x > gap_point)
 		{
-			// добавить все случаи
+			ai = calc_a_value(points[i].x - 0.5f * step, k2);
+			phi = calc_phi_value(points[i].x, f2);
+			di = calc_d_value(points[i].x, q2);
+		}
+		else
+		{
+			ai =  calc_a_value((gap_point + (points[i].x - 0.5f * step)) / 2.f, k1)  * (   gap_point - (points[i].x - 0.5f * step));
+			ai += calc_a_value((gap_point + (points[i].x + 0.5f * step)) / 2.f, k2) * ( - gap_point + (points[i].x + 0.5f * step));
+			ai /= step;
+
+			phi =  calc_phi_value((gap_point + (points[i].x - 0.5f * step)) / 2.f, f1)  * (gap_point - (points[i].x - 0.5f * step));
+			phi += calc_phi_value((gap_point + (points[i].x + 0.5f * step)) / 2.f, k2) * (-gap_point + (points[i].x + 0.5f * step));
+			phi /= step;
 		}
 
 	return points;
